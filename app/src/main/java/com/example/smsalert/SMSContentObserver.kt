@@ -123,7 +123,7 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
                         address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS))
                         body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY))
                         date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
-                        val formatted: String = formatter.format(date.milliseconds)
+                        val formatted: String = date.toString()
                         type = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE))
                         status = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.STATUS))
                         readState = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.READ))
