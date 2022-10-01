@@ -6,6 +6,10 @@ import android.net.Uri
 import android.os.Handler
 import android.provider.Telephony
 import android.util.Log
+import java.net.URI
+import java.time.format.DateTimeFormatter
+import java.util.*
+import kotlin.math.log
 
 
 class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(handler) {
@@ -13,8 +17,9 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
     private val logToastHelper: LogToastHelper = LogToastHelper()
     private val TAG: String = javaClass.kotlin.simpleName.toString()
     private var conversations = emptyMap<Int, Int>().toMutableMap()
-    private var allSms = emptyMap<Int, SmsObject>().toMutableMap()
 
+    private var allSms = emptyMap<Int, SmsObject>().toMutableMap()
+    private var isPrint = false
 
     /**
      * <thread id, num of msgs> count of msgs
@@ -23,18 +28,92 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
      *
      * */
 
+    override fun onChange(selfChange: Boolean, uri: Uri?) {
+        super.onChange(selfChange, uri)
 
-    private fun getSms(uri: Uri?) {
+        /**BY Conversations*/
+//        uri?.let {
+//            if (uri.pathSegments.isNotEmpty()) {
+//                getConversations(uri)
+//            } else {
+//                deleteSmsFromConversations(uri)
+//            }
+//        }
+
+        /**BY SMS*/
+        uri?.let {
+            isPrint = false
+            if (uri.pathSegments.isNotEmpty()) {
+                newSms(uri)
+            } else {
+                deleteSms(uri)
+            }
+        }
+    }
+
+    /**BY Conversations*/
+    private fun getConversations(uri: Uri?) {
         conversations.clear()
+        var threadId: Int
+        var msgCount: Int
+        val cursor = context.contentResolver.query(
+            Telephony.Sms.Conversations.CONTENT_URI,
+            null,
+            null,
+            null,
+            Telephony.Sms.Conversations.DEFAULT_SORT_ORDER
+        )
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+                    threadId = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.Conversations.THREAD_ID))
+                    msgCount = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.Conversations.MESSAGE_COUNT))
+                    conversations[threadId] = msgCount
+                } while (cursor.moveToNext())
+            }
+            cursor.close()
+        }
+
+        logToastHelper.showLogMsg(context, "$TAG ${uri.toString()} size conversations= ", conversations.size.toString())
+
+        for (i in conversations) {
+            logToastHelper.showLogMsg(context, "$TAG ${i.key.toString()}", i.value.toString())
+        }
+
+    }
+
+    private fun deleteSmsFromConversations(uri: Uri) {
+
+        val conversationsCopy = conversations.toMutableMap()
+        getConversations(uri)
+
+        for (i in conversationsCopy) {
+            if (conversations.containsKey(i.key)) {
+                if (i.value != conversations[i.key]) {
+                    logToastHelper.showLogMsg(context, "$TAG Delete SMS From Conversion ", i.key.toString())
+                }
+            }
+        }
+    }
+
+
+    /**BY SMS*/
+    private fun getAllSms(uri: Uri?) {
+        allSms.clear()
+        var calendar : Calendar = Calendar.getInstance()
+        val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
         var id: Int
         var threadId: Int
         var address: String
         var body: String
         var date: String
+        var type: String
+        var status: String
+        var readState: String
+        var locked: String
         var smsObject: SmsObject
         uri?.let { it ->
-            val cursor = context.contentResolver.query(it, null, null, null, null)
-//            val path: Int? = uri.pathSegments[0].toIntOrNull()
+            val cursor = context.contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, Telephony.Sms.DEFAULT_SORT_ORDER)
             if (cursor != null) {
                 if (cursor.moveToFirst()) {
                     do {
@@ -43,51 +122,48 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
                         address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS))
                         body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY))
                         date = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
-                        smsObject = SmsObject(id, threadId, address, body, date)
+                        val formatted: String = date.format(formatter)
+                        type = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE))
+                        status = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.STATUS))
+                        readState = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.READ))
+                        locked = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.LOCKED))
+                        Log.d("dorin","$locked $body")
+                        smsObject = SmsObject(id, threadId, address, body, formatted, type, status, readState)
                         allSms[id] = smsObject
-                        if (conversations.containsKey(threadId)) {
-                            conversations[threadId] = conversations.getValue(threadId).inc()
-                        } else {
-                            conversations[threadId] = 1
-                        }
-                    }while(cursor.moveToNext())
+                    } while (cursor.moveToNext())
                 }
                 cursor.close()
             }
+            logToastHelper.showLogMsg(context, "$TAG ${uri.toString()}", Telephony.Sms.CONTENT_URI.toString())
+            logToastHelper.showLogMsg(context, "$TAG ${uri.toString()} size allSms= ", allSms.size.toString())
+
+                for (i in allSms) {
+                    logToastHelper.showLogMsg(context, "$TAG ${i.key}", i.value.toString())
+                }
+
         }
-        Log.d("size ", conversations.size.toString())
-    }
-
-
-    override fun onChange(selfChange: Boolean, uri: Uri?) {
-        super.onChange(selfChange, uri)
-        getSms(uri)
-
-
-//        uri?.let {
-//            if (uri.pathSegments.isNotEmpty()) {
-//                newSms(uri)
-//            } else {
-//                deleteSms(uri)
-//            }
-//        }
     }
 
 
     private fun newSms(uri: Uri) {
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
+        getAllSms(uri)
+        val cursor = context.contentResolver.query(uri, null, null, null, Telephony.Sms.DEFAULT_SORT_ORDER)
         val path: Int? = uri.pathSegments[0].toIntOrNull()
         if (path != null && cursor != null) {
             cursor.moveToFirst()
+
+            /**way 1*/
+            Log.d("dorin", cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)))
+            /**way 2*/
             if (cursor.getColumnCount() > 0) {
                 val id: String = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms._ID))
                 val threadId: String = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID))
                 val body: String = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY))
                 val address: String = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS))
                 if (cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE)) == Telephony.Sms.Inbox.MESSAGE_TYPE_INBOX) {
-                    logToastHelper.showLogMsg(context, "SMS From $address : $body", TAG + " Inbox " + id + " " + threadId)
+                    logToastHelper.showLogMsg(context, "$TAG Inbox ID:$id  ThreadId:$threadId ", "SMS From $address : $body")
                 } else if (cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE)) == Telephony.Sms.Inbox.MESSAGE_TYPE_SENT) {
-                    logToastHelper.showLogMsg(context, "SMS Sent To $address : $body", TAG + " Outbox")
+                    logToastHelper.showLogMsg(context, "$TAG Outbox", "SMS Sent To $address : $body")
                 }
             }
             cursor.close()
@@ -95,20 +171,14 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
     }
 
     private fun deleteSms(uri: Uri) {
-        val allSmsCopy = allSms
-        val cursor = context.contentResolver.query(uri, null, null, null, null)
-        if (cursor != null) {
-            if (cursor.getColumnCount() > 0) {
-                cursor.moveToFirst()
-                while (cursor.moveToNext()) {
-                    if (allSmsCopy.containsKey(cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)))) {
-                        allSmsCopy.remove(cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms._ID)))
-                    }
-                }
-                Log.d("dorin dorsman", allSmsCopy.size.toString())
-                Log.d("dorin dorsman", allSms.size.toString())
-                cursor.close()
+        val allSmsCopy = allSms.toMutableMap()
+        getAllSms(uri)
+        for (i in allSmsCopy) {
+            if (!allSms.containsKey(i.key)) {
+                logToastHelper.showLogMsg(context, "$TAG SMS Delete ", "SMS ID:" + i.key + " SMS BODY:" + i.value._body)
             }
         }
     }
+
+
 }
