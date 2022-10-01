@@ -10,6 +10,7 @@ import java.net.URI
 import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.log
+import kotlin.time.milliseconds
 
 
 class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(handler) {
@@ -100,13 +101,13 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
     /**BY SMS*/
     private fun getAllSms(uri: Uri?) {
         allSms.clear()
-        var calendar : Calendar = Calendar.getInstance()
+        var calendar: Calendar = Calendar.getInstance()
         val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
         var id: Int
         var threadId: Int
         var address: String
         var body: String
-        var date: String
+        var date: Long
         var type: String
         var status: String
         var readState: String
@@ -121,13 +122,13 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
                         threadId = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.THREAD_ID))
                         address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS))
                         body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY))
-                        date = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
-                        val formatted: String = date.format(formatter)
+                        date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
+                        val formatted: String = formatter.format(date.milliseconds)
                         type = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE))
                         status = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.STATUS))
                         readState = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.READ))
                         locked = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.LOCKED))
-                        Log.d("dorin","$locked $body")
+                        Log.d("dorin", "$locked $body")
                         smsObject = SmsObject(id, threadId, address, body, formatted, type, status, readState)
                         allSms[id] = smsObject
                     } while (cursor.moveToNext())
@@ -137,9 +138,9 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
             logToastHelper.showLogMsg(context, "$TAG ${uri.toString()}", Telephony.Sms.CONTENT_URI.toString())
             logToastHelper.showLogMsg(context, "$TAG ${uri.toString()} size allSms= ", allSms.size.toString())
 
-                for (i in allSms) {
-                    logToastHelper.showLogMsg(context, "$TAG ${i.key}", i.value.toString())
-                }
+            for (i in allSms) {
+                logToastHelper.showLogMsg(context, "$TAG ${i.key}", i.value.toString())
+            }
 
         }
     }
