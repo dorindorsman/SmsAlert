@@ -6,11 +6,8 @@ import android.net.Uri
 import android.os.Handler
 import android.provider.Telephony
 import android.util.Log
-import java.net.URI
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.log
-import kotlin.time.milliseconds
 
 
 class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(handler) {
@@ -101,8 +98,6 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
     /**BY SMS*/
     private fun getAllSms(uri: Uri?) {
         allSms.clear()
-        var calendar: Calendar = Calendar.getInstance()
-        val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS")
         var id: Int
         var threadId: Int
         var address: String
@@ -113,6 +108,8 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
         var readState: String
         var locked: String
         var smsObject: SmsObject
+        val formatter: SimpleDateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+        val calendar = Calendar.getInstance()
         uri?.let { it ->
             val cursor = context.contentResolver.query(Telephony.Sms.CONTENT_URI, null, null, null, Telephony.Sms.DEFAULT_SORT_ORDER)
             if (cursor != null) {
@@ -123,7 +120,8 @@ class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(
                         address = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.ADDRESS))
                         body = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.BODY))
                         date = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Sms.DATE))
-                        val formatted: String = date.toString()
+                        calendar.timeInMillis = date
+                        val formatted: String = calendar.time.toString()
                         type = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.TYPE))
                         status = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.STATUS))
                         readState = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Sms.READ))
