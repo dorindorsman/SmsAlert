@@ -7,8 +7,7 @@ import android.os.Handler
 import android.provider.Telephony
 import kotlin.system.measureTimeMillis
 
-class SMSContentObserver(context: Context, handler: Handler?) : ContentObserver(handler) {
-    private val context: Context = context
+class SMSContentObserver(private val context: Context, handler: Handler?) : ContentObserver(handler) {
     private val logToastHelper: LogToastHelper = LogToastHelper()
     private val smsDeleteDetector: SmsDeleteDetector = SmsDeleteDetector(context)
     private val tag: String = javaClass.kotlin.simpleName.toString()
