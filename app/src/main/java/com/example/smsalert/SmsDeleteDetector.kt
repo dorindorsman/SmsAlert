@@ -165,37 +165,4 @@ class SmsDeleteDetector(private val context: Context) {
     }
 
 
-    /**BY Conversations*/
-    private fun getSmsConversations2(): Map<Int, Int> {
-        val allSmsConversations = mutableMapOf<Int, Int>()
-        val cursor = context.contentResolver.query(
-            Telephony.Sms.Conversations.CONTENT_URI,
-            null,
-            null,
-            null,
-            Telephony.Sms.Conversations.DEFAULT_SORT_ORDER
-        )
-
-        if (cursor == null || !cursor.moveToFirst()) {
-            return allSmsConversations
-        }
-
-        do {
-            val threadId = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.Conversations.THREAD_ID))
-            val msgCount = cursor.getInt(cursor.getColumnIndexOrThrow(Telephony.Sms.Conversations.MESSAGE_COUNT))
-            allSmsConversations[threadId] = msgCount
-        } while (cursor.moveToNext())
-
-        cursor.close()
-
-        /**Print For Test*/
-//        logToastHelper.showLogMsg(context, "$tag size sms conversations= ", allSmsConversations.size.toString())
-//        for (i in allSmsConversations) {
-//            logToastHelper.showLogMsg(context, "$tag ${i.key.toString()}", i.value.toString())
-//        }
-
-        return allSmsConversations
-    }
-
-
 }
