@@ -4,20 +4,31 @@ import android.content.Context
 import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
+import android.os.HandlerThread
 import android.provider.Telephony
 import kotlin.system.measureTimeMillis
 
-class SMSContentObserver(private val context: Context, handler: Handler?) : ContentObserver(handler) {
+class SmsContentObserver(private val context: Context, handler: Handler) : ContentObserver(handler) {
     private val logToastHelper: LogToastHelper = LogToastHelper()
     private val smsDeleteDetector: SmsDeleteDetector = SmsDeleteDetector(context)
     private val tag: String = javaClass.kotlin.simpleName.toString()
+    private val uiHandler = handler
+    private val task = Runnable { byConversations() }
+    private lateinit var conversationThread : HandlerThread
+    private lateinit var conversationsHandler : Handler
+
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         /**BY Conversations*/
-        byConversations()
-
+        startHandler()
+        conversationsHandler.post {
+            conversationsHandler.removeCallbacks(task)
+            conversationsHandler.post(task)
+        }
+        //stopHandler()
+        //byConversations()
         /**BY SMS*/
-        bySms()
+        //bySms()
     }
 
     private fun byConversations() {
@@ -26,11 +37,23 @@ class SMSContentObserver(private val context: Context, handler: Handler?) : Cont
             deletedConversations = smsDeleteDetector.getDeletedConversationsId()
         }
 
-        logToastHelper.showLogMsg(context, tag, "Execution time: $executionTime , SIZE: ${deletedConversations.size}")
-
-        deletedConversations.forEach {
-            logToastHelper.showLogMsg(context, "$tag Delete SMS From Conversion ", "<${it}>")
+        uiHandler.post {
+            logToastHelper.showLogMsg(context, tag, "Execution time: $executionTime , SIZE: ${deletedConversations.size}")
+            deletedConversations.forEach {
+                logToastHelper.showLogMsg(context, "$tag Delete SMS From Conversion ", "<${it}>")
+            }
         }
+
+    }
+
+    private fun startHandler(){
+        conversationThread = HandlerThread("conversationsThread")
+        conversationThread.start()
+        conversationsHandler = Handler(conversationThread.looper)
+    }
+
+    private fun stopHandler(){
+        conversationThread.stop()
     }
 
     private fun bySms() {

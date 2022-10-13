@@ -2,17 +2,13 @@ package com.example.smsalert
 
 import android.Manifest
 import android.content.ContentResolver
-import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.provider.ContactsContract
 import android.provider.Telephony
 import android.view.View
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
-import java.lang.ref.WeakReference
 
 
 class MainActivity : AppCompatActivity() {
@@ -41,9 +37,9 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.button).setOnClickListener {
             val contentResolver: ContentResolver = contentResolver
-            contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, SMSContentObserver(this, Handler(Looper.getMainLooper())))
-            contentResolver.registerContentObserver(Telephony.Mms.CONTENT_URI, true, SMSContentObserver(this, Handler(Looper.getMainLooper())))
-            contentResolver.registerContentObserver(Telephony.MmsSms.CONTENT_URI, true, SMSContentObserver(this, Handler(Looper.getMainLooper())))
+            contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, SmsContentObserver(this, Handler(Looper.getMainLooper())))
+            contentResolver.registerContentObserver(Telephony.Mms.CONTENT_URI, true, SmsContentObserver(this, Handler(Looper.getMainLooper())))
+            contentResolver.registerContentObserver(Telephony.MmsSms.CONTENT_URI, true, SmsContentObserver(this, Handler(Looper.getMainLooper())))
         }
 
 
