@@ -22,10 +22,10 @@ class SmsContentObserver(private val context: Context, private val uiHandler: Ha
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         /**BY Conversations*/
         //oneWay
-        conversationsHandler.post {
+//        conversationsHandler.post {
             conversationsHandler.removeCallbacks(task)
             conversationsHandler.post(task)
-        }
+//        }
 
         //twoWay
 //        convHandler?.post {
