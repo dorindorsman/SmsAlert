@@ -8,25 +8,30 @@ import android.os.HandlerThread
 import android.provider.Telephony
 import kotlin.system.measureTimeMillis
 
-class SmsContentObserver(private val context: Context, handler: Handler) : ContentObserver(handler) {
+class SmsContentObserver(private val context: Context, private val uiHandler: Handler, private val conversationsHandler : Handler) : ContentObserver(uiHandler) {
+//class SmsContentObserver(private val context: Context, private val uiHandler: Handler) : ContentObserver(uiHandler) {
     private val logToastHelper: LogToastHelper = LogToastHelper()
     private val smsDeleteDetector: SmsDeleteDetector = SmsDeleteDetector(context)
     private val tag: String = javaClass.kotlin.simpleName.toString()
-    private val uiHandler = handler
     private val task = Runnable { byConversations() }
-    private lateinit var conversationThread : HandlerThread
-    private lateinit var conversationsHandler : Handler
+    private var convThread : HandlerThread? = null
+    private var convHandler : Handler? = null
 
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
         /**BY Conversations*/
-        startHandler()
+        //oneWay
         conversationsHandler.post {
             conversationsHandler.removeCallbacks(task)
             conversationsHandler.post(task)
         }
-        //stopHandler()
-        //byConversations()
+
+        //twoWay
+//        convHandler?.post {
+//            convHandler?.removeCallbacks(task)
+//            convHandler?.post(task)
+//        }
+
         /**BY SMS*/
         //bySms()
     }
@@ -43,18 +48,21 @@ class SmsContentObserver(private val context: Context, handler: Handler) : Conte
                 logToastHelper.showLogMsg(context, "$tag Delete SMS From Conversion ", "<${it}>")
             }
         }
-
     }
 
-    private fun startHandler(){
-        conversationThread = HandlerThread("conversationsThread")
-        conversationThread.start()
-        conversationsHandler = Handler(conversationThread.looper)
+    fun start(){
+        convThread = HandlerThread("convThread").apply {
+            start()
+            convHandler = Handler(looper)
+        }
     }
 
-    private fun stopHandler(){
-        conversationThread.stop()
+    fun stop() {
+        convThread?.quit()
+        convThread = null
+        convHandler = null
     }
+
 
     private fun bySms() {
         newSms()

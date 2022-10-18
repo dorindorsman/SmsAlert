@@ -5,6 +5,7 @@ import android.content.ContentResolver
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Handler
+import android.os.HandlerThread
 import android.os.Looper
 import android.provider.Telephony
 import android.view.View
@@ -13,14 +14,17 @@ import androidx.core.app.ActivityCompat
 
 class MainActivity : AppCompatActivity() {
 
-    //private lateinit var smsContentObserver: SMSContentObserver
+    private var smsContentObserver: SmsContentObserver? = null
     private val CALL_REQUEST_CODE = 369
+    private lateinit var conversationThread: HandlerThread
+    private lateinit var conversationsHandler: Handler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //smsContentObserver = SMSContentObserver(this, Handler(Looper.getMainLooper()))
+
+
         ActivityCompat.requestPermissions(
             this,
             arrayOf(
@@ -37,11 +41,34 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<View>(R.id.button).setOnClickListener {
             val contentResolver: ContentResolver = contentResolver
-            contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, SmsContentObserver(this, Handler(Looper.getMainLooper())))
-            contentResolver.registerContentObserver(Telephony.Mms.CONTENT_URI, true, SmsContentObserver(this, Handler(Looper.getMainLooper())))
-            contentResolver.registerContentObserver(Telephony.MmsSms.CONTENT_URI, true, SmsContentObserver(this, Handler(Looper.getMainLooper())))
+            startThread()
+            smsContentObserver = SmsContentObserver(this, Handler(Looper.getMainLooper()), conversationsHandler)
+            //smsContentObserver = SmsContentObserver(this, Handler(Looper.getMainLooper()))
+            smsContentObserver?.let {
+                //it.start()
+                contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, it)
+                contentResolver.registerContentObserver(Telephony.Mms.CONTENT_URI, true, it)
+                contentResolver.registerContentObserver(Telephony.MmsSms.CONTENT_URI, true, it)
+            }
         }
+    }
 
+    fun startThread() {
+        conversationThread = HandlerThread("conversationsThread")
+        conversationThread.start()
+        conversationsHandler = Handler(conversationThread.looper)
+    }
+
+    fun stopThread() {
+        conversationThread.quit()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        stopThread()
+        // smsContentObserver?.stop()
 
     }
+
+
 }
