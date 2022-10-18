@@ -8,14 +8,15 @@ import android.os.HandlerThread
 import android.provider.Telephony
 import kotlin.system.measureTimeMillis
 
-class SmsContentObserver(private val context: Context, private val uiHandler: Handler, private val conversationsHandler : Handler) : ContentObserver(uiHandler) {
-//class SmsContentObserver(private val context: Context, private val uiHandler: Handler) : ContentObserver(uiHandler) {
+class SmsContentObserver(private val context: Context, private val uiHandler: Handler, private val conversationsHandler: Handler) :
+    ContentObserver(uiHandler) {
+    //class SmsContentObserver(private val context: Context, private val uiHandler: Handler) : ContentObserver(uiHandler) {
     private val logToastHelper: LogToastHelper = LogToastHelper()
     private val smsDeleteDetector: SmsDeleteDetector = SmsDeleteDetector(context)
     private val tag: String = javaClass.kotlin.simpleName.toString()
     private val task = Runnable { byConversations() }
-    private var convThread : HandlerThread? = null
-    private var convHandler : Handler? = null
+    private var convThread: HandlerThread? = null
+    private var convHandler: Handler? = null
 
 
     override fun onChange(selfChange: Boolean, uri: Uri?) {
@@ -43,14 +44,16 @@ class SmsContentObserver(private val context: Context, private val uiHandler: Ha
         }
 
         uiHandler.post {
-            logToastHelper.showLogMsg(context, tag, "Execution time: $executionTime , SIZE: ${deletedConversations.size}")
-            deletedConversations.forEach {
-                logToastHelper.showLogMsg(context, "$tag Delete SMS From Conversion ", "<${it}>")
+            if (deletedConversations.size != 0) {
+                logToastHelper.showLogMsg(context, tag, "Execution time: $executionTime , SIZE: ${deletedConversations.size}")
+                deletedConversations.forEach {
+                    logToastHelper.showLogMsg(context, "$tag Delete SMS From Conversion ", "<${it}>")
+                }
             }
         }
     }
 
-    fun start(){
+    fun start() {
         convThread = HandlerThread("convThread").apply {
             start()
             convHandler = Handler(looper)
